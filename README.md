@@ -1,15 +1,50 @@
-# fastfood-system
+# FastFood System
 
-To install dependencies:
+Detta projekt är ett distribuerat backend-system inspirerat av snabbmatskedjors ordersystem.
+
+## Teknik
+
+- Bun
+- RabbitMQ
+- PostgreSQL
+- Docker Compose
+
+## Tjänster
+
+- Product Service
+- Order Service
+- Kitchen Service
+- Notification Service
+
+## Starta systemet
+
+Kör följande kommando:
 
 ```bash
-bun install
+docker compose up --build
 ```
 
-To run:
+## Testa flödet
 
-```bash
-bun run index.ts
+Skicka en POST-request till:
+
+```text
+http://localhost:3001/orders
 ```
 
-This project was created using `bun init` in bun v1.3.9. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+Exempel:
+
+```json
+{
+  "customerId": "c1",
+  "items": [
+    {
+      "productId": "p1",
+      "quantity": 2,
+      "price": 89
+    }
+  ]
+}
+```
+
+När en order skapas sparas den i PostgreSQL och ett event skickas via RabbitMQ. Kitchen-service tar emot eventet och publicerar ett nytt event när maten är klar. Notification-service skickar sedan en notis till kunden.
