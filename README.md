@@ -1,38 +1,62 @@
 # FastFood System
 
-Detta projekt är ett distribuerat backend-system inspirerat av snabbmatskedjors ordersystem.
+Detta projekt är ett distribuerat backend-system inspirerat av hur snabbmatskedjors ordersystem fungerar. Systemet använder en eventdriven arkitektur där tjänster kommunicerar med varandra via RabbitMQ.
 
 ## Teknik
 
 - Bun
+- TypeScript
 - RabbitMQ
 - PostgreSQL
 - Docker Compose
+- Nginx
 
 ## Tjänster
 
-- Product Service
-- Order Service
-- Kitchen Service
-- Notification Service
+- **Product Service** – visar produkter och menyer.
+- **Order Service** – tar emot beställningar, sparar dem i PostgreSQL och publicerar ett event.
+- **Kitchen Service** – tar emot order-event och markerar när maten är klar.
+- **Notification Service** – skickar notiser när en order skapas och när maten är färdig.
+
+## Arkitektur
+
+Systemet använder RabbitMQ för intern kommunikation mellan tjänsterna.
+
+```text
+Client
+   ↓
+Nginx
+   ↓
+Order Service
+   ↓
+PostgreSQL
+   ↓
+RabbitMQ (events.order.created)
+   ↓
+Kitchen Service
+   ↓
+RabbitMQ (events.order.ready)
+   ↓
+Notification Service
+```
 
 ## Starta systemet
 
-Kör följande kommando:
+Starta alla tjänster med:
 
 ```bash
 docker compose up --build
 ```
 
-## Testa flödet
+## Testa systemet
 
 Skicka en POST-request till:
 
 ```text
-http://localhost:3001/orders
+http://localhost/orders
 ```
 
-Exempel:
+Exempel på request body:
 
 ```json
 {
@@ -47,4 +71,22 @@ Exempel:
 }
 ```
 
-När en order skapas sparas den i PostgreSQL och ett event skickas via RabbitMQ. Kitchen-service tar emot eventet och publicerar ett nytt event när maten är klar. Notification-service skickar sedan en notis till kunden.
+När en order skapas:
+
+1. Ordern sparas i PostgreSQL.
+2. Ett `events.order.created`-event skickas via RabbitMQ.
+3. Kitchen Service tar emot eventet och förbereder ordern.
+4. Kitchen Service publicerar `events.order.ready`.
+5. Notification Service skickar en notis till kunden.
+
+## Tester
+
+Projektet innehåller ett enkelt test som kan köras med:
+
+```bash
+bun test
+```
+
+## CI
+
+Projektet använder GitHub Actions för att automatiskt köra tester vid varje push till `main`.
