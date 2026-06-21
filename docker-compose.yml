@@ -1,9 +1,6 @@
 services:
   rabbitmq:
     image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -16,8 +13,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: fastfood
-    ports:
-      - "55432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d fastfood"]
       interval: 5s
@@ -27,8 +22,9 @@ services:
   product-service:
     build: .
     command: bun run product-service
-    ports:
-      - "3002:3002"
+    expose:
+      - "3002"
+    restart: on-failure
 
   order-service:
     build: .
@@ -36,26 +32,31 @@ services:
     environment:
       AMQP_URL: amqp://rabbitmq
       POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
+      POSTGRES_PORT: "5432"
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: fastfood
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     depends_on:
       rabbitmq:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    restart: on-failure
 
   kitchen-service:
     build: .
     command: bun run kitchen-service
     environment:
       AMQP_URL: amqp://rabbitmq
+      PORT: "3003"
+    expose:
+      - "3003"
     depends_on:
       rabbitmq:
         condition: service_healthy
+    restart: on-failure
 
   notification-service:
     build: .
@@ -65,9 +66,11 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    restart: on-failure
 
   nginx:
     image: nginx:alpine
+    restart: on-failure
     ports:
       - "80:80"
     volumes:
@@ -75,3 +78,4 @@ services:
     depends_on:
       - product-service
       - order-service
+      - kitchen-service

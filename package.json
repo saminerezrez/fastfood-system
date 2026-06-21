@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "dev": "docker compose up --build",
     "product-service": "bun src/services/product-service/index.ts",
     "order-service": "bun src/services/order-service/index.ts",
     "kitchen-service": "bun src/services/kitchen-service/index.ts",
